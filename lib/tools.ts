@@ -56,7 +56,7 @@ export const toolGroups: ToolGroup[] = [
         id: "remove-pages",
         name: "Remove Pages",
         description: "Delete specific pages from your PDF",
-        href: "/tools/organize-pdf",
+        href: "/tools/remove-pages",
         category: "organize",
         color: "#E8372C",
         bgColor: "#fef2f2",

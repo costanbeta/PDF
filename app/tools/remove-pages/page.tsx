@@ -1,219 +1,251 @@
 "use client";
 
-import { useState } from "react";
-import { PDFDocument } from "pdf-lib";
+import { useState, useEffect } from "react";
 import { ToolLayout } from "@/components/tools/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { ProgressBar } from "@/components/tools/ProgressBar";
-import { getFileNameWithoutExtension } from "@/lib/utils";
 import { renderPageThumbnail, getPDFPageCount } from "@/lib/pdf/to-jpg";
-import { Check } from "lucide-react";
+import { FileMinus, Loader2, CheckSquare, Square } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function RemovePagesPage() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles]           = useState<File[]>([]);
   const [thumbnails, setThumbnails] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected]     = useState<Set<number>>(new Set());
+  const [loadingThumbs, setLoadingThumbs] = useState(false);
+  const [result, setResult]         = useState<Uint8Array | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<Uint8Array | null>(null);
-  const [outputName, setOutputName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pageCount, setPageCount] = useState(0);
+  const [progress, setProgress]     = useState(0);
+  const [error, setError]           = useState<string | null>(null);
 
-  const handleFilesChange = async (newFiles: File[]) => {
-    setFiles(newFiles);
+  const file = files[0] ?? null;
+
+  useEffect(() => {
+    if (!file) { setThumbnails([]); setSelected(new Set()); return; }
+    let cancelled = false;
+    setLoadingThumbs(true);
     setThumbnails([]);
     setSelected(new Set());
-    setResult(null);
-    setError(null);
-    setPageCount(0);
-    if (!newFiles[0]) return;
-    setLoading(true);
-    try {
-      const buffer = await newFiles[0].arrayBuffer();
-      const count = await getPDFPageCount(buffer);
-      setPageCount(count);
-      const thumbs: string[] = [];
-      for (let i = 0; i < count; i++) {
-        setProgress(Math.round((i / count) * 90));
-        const t = await renderPageThumbnail(buffer, i, 160);
-        thumbs.push(t);
-      }
-      setThumbnails(thumbs);
-      setProgress(0);
-    } catch {
-      setError("Failed to load PDF pages.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const togglePage = (idx: number) => {
+    (async () => {
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const count = await getPDFPageCount(bytes);
+        const thumbs: string[] = [];
+        for (let i = 0; i < count; i++) {
+          if (cancelled) return;
+          const thumb = await renderPageThumbnail(bytes, i, 150);
+          thumbs.push(thumb);
+          if (!cancelled) setThumbnails([...thumbs]);
+        }
+        if (!cancelled) setLoadingThumbs(false);
+      } catch (e) {
+        if (!cancelled) {
+          setLoadingThumbs(false);
+          setError(e instanceof Error ? e.message : "Failed to load PDF pages.");
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [file]);
+
+  const togglePage = (i: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
+      next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
   };
 
-  const handleProcess = async () => {
-    if (!files[0] || selected.size === 0) return;
-    setProcessing(true);
-    setProgress(10);
-    setError(null);
-    setResult(null);
+  const selectAll = () => setSelected(new Set(thumbnails.map((_, i) => i)));
+  const clearAll  = () => setSelected(new Set());
 
+  const handleRemove = async () => {
+    if (!file || selected.size === 0) return;
+    setProcessing(true); setProgress(20); setError(null);
     try {
-      const buffer = await files[0].arrayBuffer();
-      const srcPdf = await PDFDocument.load(buffer);
-      const newPdf = await PDFDocument.create();
-      setProgress(30);
+      const { PDFDocument } = await import("pdf-lib");
+      const buf = await file.arrayBuffer();
+      const src = await PDFDocument.load(buf);
+      setProgress(50);
 
-      const keepIndices: number[] = [];
-      for (let i = 0; i < pageCount; i++) {
-        if (!selected.has(i)) keepIndices.push(i);
-      }
+      const keepIndices = Array.from({ length: thumbnails.length }, (_, i) => i)
+        .filter((i) => !selected.has(i));
 
-      if (keepIndices.length === 0) {
-        throw new Error("Cannot remove all pages. At least one page must remain.");
-      }
+      if (keepIndices.length === 0) throw new Error("You cannot remove all pages.");
 
-      const copiedPages = await newPdf.copyPages(srcPdf, keepIndices);
-      setProgress(60);
+      const newDoc = await PDFDocument.create();
+      const pages  = await newDoc.copyPages(src, keepIndices);
+      pages.forEach((p) => newDoc.addPage(p));
 
-      for (const p of copiedPages) {
-        newPdf.addPage(p);
-      }
-
-      setProgress(85);
-      const saved = await newPdf.save();
-      setResult(saved);
-      setOutputName(`${getFileNameWithoutExtension(files[0].name)}-pages-removed.pdf`);
+      setProgress(90);
+      const bytes = await newDoc.save();
       setProgress(100);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove pages.");
+      setResult(bytes);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to remove pages.");
     } finally {
       setProcessing(false);
     }
   };
 
   const handleReset = () => {
-    setFiles([]);
-    setThumbnails([]);
-    setSelected(new Set());
-    setResult(null);
-    setError(null);
-    setProgress(0);
-    setPageCount(0);
+    setFiles([]); setThumbnails([]); setSelected(new Set());
+    setResult(null); setProgress(0); setError(null);
   };
+
+  const pageCount = thumbnails.length;
 
   return (
     <ToolLayout
       title="Remove Pages"
-      description="Delete specific pages from your PDF document."
+      description="Select the pages you want to delete, then save the cleaned PDF."
     >
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 space-y-6">
-        <FileUploader
-          files={files}
-          onFilesChange={handleFilesChange}
-          accept={{ "application/pdf": [".pdf"] }}
-          multiple={false}
-          label="Drag & drop your PDF here"
-          sublabel="or click to browse"
-        />
+      <FileUploader
+        files={files}
+        onFilesChange={setFiles}
+        label="Drag & drop your PDF here"
+        sublabel="Upload one PDF to remove pages from"
+      />
 
-        {loading && (
-          <div className="space-y-2">
-            <ProgressBar progress={progress} label="Loading pages…" />
-          </div>
-        )}
+      {file && !result && (
+        <>
+          {loadingThumbs && thumbnails.length === 0 && (
+            <div className="flex items-center justify-center gap-2 py-8 text-[var(--muted-foreground)]">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading page previews…</span>
+            </div>
+          )}
 
-        {thumbnails.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-[var(--foreground)]">
-                Select pages to remove ({selected.size} selected)
-              </p>
-              <div className="flex gap-3 text-sm">
-                <button
-                  onClick={() => setSelected(new Set(thumbnails.map((_, i) => i)))}
-                  className="text-[#E8372C] hover:underline"
-                >
-                  Select all
-                </button>
-                <button
-                  onClick={() => setSelected(new Set())}
-                  className="text-[var(--muted-foreground)] hover:underline"
-                >
-                  Clear
-                </button>
+          {error && thumbnails.length === 0 && (
+            <p className="text-sm text-red-500 p-3 rounded-xl bg-red-50 dark:bg-red-950/30">
+              {error} — make sure the PDF is not password-protected or corrupted.
+            </p>
+          )}
+
+          {thumbnails.length > 0 && (
+            <>
+              {/* Toolbar */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  <span className="font-semibold text-[var(--foreground)]">{pageCount}</span> pages ·{" "}
+                  <span className="font-semibold text-[#E8372C]">{selected.size}</span> selected to remove
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={selectAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:border-[#E8372C] hover:text-[#E8372C] transition-colors"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5" /> Select all
+                  </button>
+                  <button
+                    onClick={clearAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)] transition-colors"
+                  >
+                    <Square className="w-3.5 h-3.5" /> Clear
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {thumbnails.map((thumb, i) => (
-                <button
-                  key={i}
-                  onClick={() => togglePage(i)}
-                  className="relative group rounded-xl overflow-hidden border-2 transition-all"
-                  style={{
-                    borderColor: selected.has(i) ? "#E8372C" : "var(--border)",
-                  }}
-                >
-                  <img src={thumb} alt={`Page ${i + 1}`} className="w-full" />
-                  {selected.has(i) && (
-                    <div className="absolute inset-0 bg-[#E8372C]/20 flex items-center justify-center">
-                      <div className="w-6 h-6 rounded-full bg-[#E8372C] flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
+              {/* Page grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                {thumbnails.map((thumb, i) => {
+                  const isSelected = selected.has(i);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => togglePage(i)}
+                      className={cn(
+                        "relative rounded-xl border-2 overflow-hidden transition-all group text-left",
+                        isSelected
+                          ? "border-red-500 ring-2 ring-red-500/30 scale-[0.97]"
+                          : "border-[var(--border)] hover:border-[var(--muted-foreground)]/60 hover:scale-[1.02]"
+                      )}
+                    >
+                      {/* Thumbnail */}
+                      <div className="aspect-[3/4] bg-white">
+                        <img
+                          src={thumb}
+                          alt={`Page ${i + 1}`}
+                          className={cn(
+                            "w-full h-full object-contain transition-opacity",
+                            isSelected && "opacity-40"
+                          )}
+                          draggable={false}
+                        />
                       </div>
-                    </div>
-                  )}
-                  <div className="absolute bottom-1 left-0 right-0 text-center">
-                    <span className="text-xs bg-black/60 text-white px-1.5 py-0.5 rounded">
-                      {i + 1}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
 
-            {!result && (
-              <button
-                onClick={handleProcess}
-                disabled={processing || selected.size === 0}
-                className="w-full py-3.5 bg-[#E8372C] hover:bg-[#c42d22] disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
-              >
-                {processing
-                  ? "Removing pages…"
-                  : selected.size === 0
-                  ? "Select pages to remove"
-                  : `Remove ${selected.size} page${selected.size !== 1 ? "s" : ""}`}
-              </button>
-            )}
-          </div>
-        )}
+                      {/* Deleted overlay */}
+                      {isSelected && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-red-500/10">
+                          <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
+                            <FileMinus className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      )}
 
-        {processing && <ProgressBar progress={progress} label="Removing selected pages…" />}
+                      {/* Checkbox top-right */}
+                      <div className={cn(
+                        "absolute top-1.5 right-1.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                        isSelected
+                          ? "bg-red-500 border-red-500"
+                          : "bg-white/80 border-gray-300 group-hover:border-[#E8372C]"
+                      )}>
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                            <path d="M2.5 6.5L5 9l4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
 
-        {error && (
-          <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4 text-sm text-red-600 dark:text-red-400">
-            {error}
-          </div>
-        )}
+                      {/* Page number */}
+                      <div className={cn(
+                        "py-1.5 text-center text-[11px] font-bold transition-colors",
+                        isSelected
+                          ? "bg-red-500 text-white"
+                          : "bg-[var(--card)] text-[var(--muted-foreground)] border-t border-[var(--border)]"
+                      )}>
+                        {i + 1}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
-        {result && (
-          <DownloadButton
-            data={result}
-            filename={outputName}
-            fileSize={result.length}
-            onReset={handleReset}
-            label="Download PDF"
-          />
-        )}
-      </div>
+          {processing && <ProgressBar progress={progress} label="Removing pages…" />}
+
+          {error && (
+            <p className="text-sm text-red-500 p-3 rounded-xl bg-red-50 dark:bg-red-950/30">{error}</p>
+          )}
+
+          <button
+            onClick={handleRemove}
+            disabled={processing || selected.size === 0}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#E8372C] hover:bg-[#c42d22] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all"
+          >
+            <FileMinus className="w-5 h-5" />
+            {processing
+              ? "Removing…"
+              : selected.size === 0
+              ? "Select pages to remove"
+              : `Remove ${selected.size} Page${selected.size > 1 ? "s" : ""}`}
+          </button>
+        </>
+      )}
+
+      {result && (
+        <DownloadButton
+          data={result}
+          filename={`removed_pages_${file?.name ?? "output.pdf"}`}
+          fileSize={result.length}
+          onReset={handleReset}
+          label="Download PDF"
+        />
+      )}
     </ToolLayout>
   );
 }

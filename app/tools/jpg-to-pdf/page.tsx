@@ -4,129 +4,172 @@ import { useState } from "react";
 import { ToolLayout } from "@/components/tools/ToolLayout";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { ProgressBar } from "@/components/tools/ProgressBar";
-import { imagesToPDF } from "@/lib/pdf/jpg-to-pdf";
+import { imagesToPDF, imagesToPDFSeparate, type Orientation, type PageSizeId, type MarginSize } from "@/lib/pdf/jpg-to-pdf";
 import { useDropzone } from "react-dropzone";
-import { Upload, GripVertical, X, FileImage } from "lucide-react";
-import { cn, formatBytes } from "@/lib/utils";
+import { Upload, GripVertical, X, FileImage, Plus } from "lucide-react";
+import { cn, formatBytes, downloadBlob } from "@/lib/utils";
+import JSZip from "jszip";
+
+const PAGE_SIZE_OPTIONS: { id: PageSizeId; label: string }[] = [
+  { id: "fit",    label: "Fit to image" },
+  { id: "a4",     label: "A4 (210×297 mm)" },
+  { id: "a3",     label: "A3 (297×420 mm)" },
+  { id: "letter", label: "Letter (216×279 mm)" },
+  { id: "legal",  label: "Legal (216×356 mm)" },
+];
 
 export default function JPGToPDFPage() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles]       = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [result, setResult] = useState<Uint8Array | null>(null);
+  const [result, setResult]     = useState<Uint8Array | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [progress, setProgress]     = useState(0);
+  const [error, setError]           = useState<string | null>(null);
+  const [dragIndex, setDragIndex]   = useState<number | null>(null);
+  const [overIndex, setOverIndex]   = useState<number | null>(null);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  // Options
+  const [orientation, setOrientation] = useState<Orientation>("portrait");
+  const [pageSize, setPageSize]       = useState<PageSizeId>("fit");
+  const [margin, setMargin]           = useState<MarginSize>("none");
+  const [mergeAll, setMergeAll]       = useState(true);
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] },
     multiple: true,
+    noClick: files.length > 0,
     onDrop: (accepted) => {
       setFiles((prev) => [...prev, ...accepted]);
-      accepted.forEach((f) => {
-        const url = URL.createObjectURL(f);
-        setPreviews((prev) => [...prev, url]);
-      });
+      accepted.forEach((f) => setPreviews((prev) => [...prev, URL.createObjectURL(f)]));
     },
   });
 
-  const removeFile = (index: number) => {
-    URL.revokeObjectURL(previews[index]);
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  const removeFile = (i: number) => {
+    URL.revokeObjectURL(previews[i]);
+    setFiles((p) => p.filter((_, idx) => idx !== i));
+    setPreviews((p) => p.filter((_, idx) => idx !== i));
   };
 
-  const handleDrop = (overIndex: number) => {
-    if (dragIndex === null || dragIndex === overIndex) return;
-    const reorderedFiles = [...files];
-    const reorderedPreviews = [...previews];
-    const [fMoved] = reorderedFiles.splice(dragIndex, 1);
-    const [pMoved] = reorderedPreviews.splice(dragIndex, 1);
-    reorderedFiles.splice(overIndex, 0, fMoved);
-    reorderedPreviews.splice(overIndex, 0, pMoved);
-    setFiles(reorderedFiles);
-    setPreviews(reorderedPreviews);
-    setDragIndex(null);
+  const handleDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setOverIndex(i); };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (dragIndex === null || overIndex === null || dragIndex === overIndex) {
+      setDragIndex(null); setOverIndex(null); return;
+    }
+    const rf = [...files], rp = [...previews];
+    const [fMoved] = rf.splice(dragIndex, 1);
+    const [pMoved] = rp.splice(dragIndex, 1);
+    rf.splice(overIndex, 0, fMoved);
+    rp.splice(overIndex, 0, pMoved);
+    setFiles(rf); setPreviews(rp);
+    setDragIndex(null); setOverIndex(null);
   };
 
   const handleConvert = async () => {
     if (files.length === 0) return;
-    setProcessing(true);
-    setProgress(20);
-    setError(null);
+    setProcessing(true); setProgress(20); setError(null);
+    const opts = { orientation, pageSize, margin };
     try {
-      setProgress(60);
-      const pdf = await imagesToPDF(files);
-      setProgress(100);
-      setResult(pdf);
+      if (mergeAll || files.length === 1) {
+        setProgress(60);
+        const pdf = await imagesToPDF(files, opts);
+        setProgress(100);
+        setResult(pdf);
+      } else {
+        setProgress(50);
+        const parts = await imagesToPDFSeparate(files, opts);
+        setProgress(85);
+        const zip = new JSZip();
+        parts.forEach(({ name, data }) => zip.file(name, data));
+        const blob = await zip.generateAsync({ type: "blob" });
+        setProgress(100);
+        downloadBlob(blob, "images_to_pdf.zip");
+        setResult(new Uint8Array(0)); // trigger done state
+      }
     } catch {
-      setError("Failed to convert images. Ensure files are valid JPEG, PNG, or WebP images.");
+      setError("Failed to convert images. Ensure files are valid JPEG, PNG, or WebP.");
     } finally {
       setProcessing(false);
     }
   };
 
   const handleReset = () => {
-    previews.forEach((url) => URL.revokeObjectURL(url));
-    setFiles([]);
-    setPreviews([]);
-    setResult(null);
-    setProgress(0);
-    setError(null);
+    previews.forEach((u) => URL.revokeObjectURL(u));
+    setFiles([]); setPreviews([]); setResult(null); setProgress(0); setError(null);
   };
 
-  return (
-    <ToolLayout
-      title="JPG to PDF"
-      description="Convert images to a PDF document. Drag to reorder images."
-    >
-      {!result ? (
-        <>
-          <div
-            {...getRootProps()}
-            className={cn(
-              "border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all",
-              isDragActive
-                ? "border-[#E8372C] bg-[#E8372C]/5"
-                : "border-[var(--border)] hover:border-[#E8372C]/50 hover:bg-[var(--muted)]"
-            )}
-          >
-            <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-[var(--muted)] flex items-center justify-center">
-                <Upload className="w-8 h-8 text-[var(--muted-foreground)]" />
-              </div>
-              <div>
-                <p className="font-semibold text-[var(--foreground)]">Upload images (JPG, PNG, WebP)</p>
-                <p className="text-sm text-[var(--muted-foreground)] mt-1">Drag & drop or click to browse</p>
-              </div>
-            </div>
-          </div>
+  const hasFiles = files.length > 0;
 
-          {files.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="font-medium text-[var(--foreground)] text-sm">
-                {files.length} image{files.length > 1 ? "s" : ""} — drag to reorder
-              </h3>
+  return (
+    <ToolLayout title="JPG to PDF" description="Convert images to a PDF document. Drag to reorder images.">
+      {!result ? (
+        <div className={cn("gap-6", hasFiles ? "grid grid-cols-1 lg:grid-cols-[1fr_300px]" : "")}>
+          {/* Left: dropzone + image grid */}
+          <div className="space-y-4">
+            <div
+              {...getRootProps()}
+              className={cn(
+                "border-2 border-dashed rounded-2xl transition-all",
+                hasFiles ? "p-3 cursor-default" : "p-10 text-center cursor-pointer",
+                isDragActive ? "border-[#E8372C] bg-[#E8372C]/5" : "border-[var(--border)] hover:border-[#E8372C]/50"
+              )}
+            >
+              <input {...getInputProps()} />
+              {!hasFiles ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-[var(--muted)] flex items-center justify-center">
+                    <Upload className="w-8 h-8 text-[var(--muted-foreground)]" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[var(--foreground)]">Upload images (JPG, PNG, WebP)</p>
+                    <p className="text-sm text-[var(--muted-foreground)] mt-1">Drag & drop or click to browse</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-[var(--foreground)]">
+                    {files.length} image{files.length > 1 ? "s" : ""} — drag to reorder
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); open(); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--muted-foreground)] hover:border-[#E8372C] hover:text-[#E8372C] transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add more
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {hasFiles && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                 {files.map((file, index) => (
                   <div
                     key={`${file.name}-${index}`}
                     draggable
                     onDragStart={() => setDragIndex(index)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleDrop(index)}
-                    className="relative group rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--muted)] cursor-grab"
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={handleDrop}
+                    onDragEnd={() => { setDragIndex(null); setOverIndex(null); }}
+                    className={cn(
+                      "relative group rounded-xl overflow-hidden border-2 cursor-grab select-none transition-all",
+                      overIndex === index && dragIndex !== index
+                        ? "border-[#E8372C] scale-105 shadow-lg"
+                        : dragIndex === index
+                        ? "opacity-40 border-dashed border-[var(--border)]"
+                        : "border-[var(--border)] hover:border-[var(--muted-foreground)]/50"
+                    )}
                   >
-                    <div className="aspect-square">
+                    <div className="aspect-square bg-[var(--muted)]">
                       <img
                         src={previews[index]}
                         alt={file.name}
                         className="w-full h-full object-cover"
+                        draggable={false}
                       />
                     </div>
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between p-1.5">
-                      <GripVertical className="w-4 h-4 text-white" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-between p-1.5">
+                      <GripVertical className="w-4 h-4 text-white mt-0.5" />
                       <button
                         onClick={() => removeFile(index)}
                         className="p-1 rounded-full bg-red-500 text-white"
@@ -134,32 +177,156 @@ export default function JPGToPDFPage() {
                         <X className="w-3 h-3" />
                       </button>
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-xs text-white truncate">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[11px] text-white truncate">
                       {formatBytes(file.size)}
+                    </div>
+                    {/* Position number */}
+                    <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-[#E8372C] text-white text-[10px] font-bold flex items-center justify-center">
+                      {index + 1}
                     </div>
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* Right: options panel */}
+          {hasFiles && (
+            <div className="space-y-5">
+              <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] space-y-5">
+                <h3 className="font-semibold text-[var(--foreground)]">Image to PDF options</h3>
+
+                {/* Orientation */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[var(--foreground)]">Page orientation</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setOrientation("portrait")}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
+                        orientation === "portrait"
+                          ? "border-[#E8372C] bg-[#E8372C]/5"
+                          : "border-[var(--border)] hover:border-[var(--foreground)]/40"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-10 rounded border-2 flex items-center justify-center",
+                        orientation === "portrait" ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
+                      )}>
+                        <div className={cn("w-3 h-4 rounded-sm", orientation === "portrait" ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")} />
+                      </div>
+                      <span className={cn("text-xs font-semibold", orientation === "portrait" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")}>
+                        Portrait
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setOrientation("landscape")}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
+                        orientation === "landscape"
+                          ? "border-[#E8372C] bg-[#E8372C]/5"
+                          : "border-[var(--border)] hover:border-[var(--foreground)]/40"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-10 h-8 rounded border-2 flex items-center justify-center",
+                        orientation === "landscape" ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
+                      )}>
+                        <div className={cn("w-4 h-3 rounded-sm", orientation === "landscape" ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")} />
+                      </div>
+                      <span className={cn("text-xs font-semibold", orientation === "landscape" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")}>
+                        Landscape
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Page size */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[var(--foreground)]">Page size</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(e.target.value as PageSizeId)}
+                    className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:border-[#E8372C] transition-colors"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Margin */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[var(--foreground)]">Margin</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["none", "small", "big"] as MarginSize[]).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setMargin(m)}
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all",
+                          margin === m
+                            ? "border-[#E8372C] bg-[#E8372C]/5"
+                            : "border-[var(--border)] hover:border-[var(--foreground)]/40"
+                        )}
+                      >
+                        {/* Mini page visual */}
+                        <div className={cn(
+                          "w-8 h-8 rounded border flex items-center justify-center",
+                          margin === m ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
+                        )}>
+                          <div
+                            className={cn("rounded-sm", margin === m ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")}
+                            style={{
+                              width: m === "none" ? "100%" : m === "small" ? "80%" : "60%",
+                              height: m === "none" ? "100%" : m === "small" ? "80%" : "60%",
+                            }}
+                          />
+                        </div>
+                        <span className={cn("text-[10px] font-semibold capitalize", margin === m ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")}>
+                          {m === "none" ? "No margin" : m}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Merge checkbox */}
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div
+                    onClick={() => setMergeAll(!mergeAll)}
+                    className={cn(
+                      "w-5 h-5 rounded flex items-center justify-center border-2 shrink-0 transition-all",
+                      mergeAll ? "bg-[#E8372C] border-[#E8372C]" : "border-[var(--border)] group-hover:border-[#E8372C]"
+                    )}
+                  >
+                    {mergeAll && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-sm text-[var(--foreground)]">Merge all images in one PDF file</span>
+                </label>
+              </div>
+
+              {processing && <ProgressBar progress={progress} label="Converting to PDF..." />}
+              {error && (
+                <p className="text-sm text-red-500 p-3 rounded-xl bg-red-50 dark:bg-red-950/30">{error}</p>
+              )}
+
+              <button
+                onClick={handleConvert}
+                disabled={files.length === 0 || processing}
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#E8372C] hover:bg-[#c42d22] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all"
+              >
+                <FileImage className="w-5 h-5" />
+                {processing ? "Converting…" : "Convert to PDF"}
+              </button>
             </div>
           )}
-
-          {processing && <ProgressBar progress={progress} label="Converting to PDF..." />}
-
-          {error && (
-            <p className="text-sm text-red-500 p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
-              {error}
-            </p>
-          )}
-
-          <button
-            onClick={handleConvert}
-            disabled={files.length === 0 || processing}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#E8372C] hover:bg-[#c42d22] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all"
-          >
-            <FileImage className="w-5 h-5" />
-            {processing ? "Converting..." : `Convert ${files.length || ""} Image${files.length !== 1 ? "s" : ""} to PDF`}
-          </button>
-        </>
+        </div>
       ) : (
         <DownloadButton
           data={result}
@@ -168,6 +335,13 @@ export default function JPGToPDFPage() {
           onReset={handleReset}
           label="Download PDF"
         />
+      )}
+
+      {!hasFiles && (
+        <>
+          {processing && <ProgressBar progress={progress} label="Converting to PDF..." />}
+          {error && <p className="text-sm text-red-500 p-3 rounded-xl bg-red-50 dark:bg-red-950/30">{error}</p>}
+        </>
       )}
     </ToolLayout>
   );
