@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brand: #E8372C;
+  --color-brand-dark: #c42d22;
+  --color-charcoal: #1A1A2E;
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-jakarta);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #ffffff;
+  --foreground: #1A1A2E;
+  --brand: #E8372C;
+  --brand-dark: #c42d22;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --card: #ffffff;
+  --card-foreground: #1A1A2E;
+}
+
+.dark {
+  --background: #0f0f1a;
+  --foreground: #f4f4f5;
+  --muted: #1e1e30;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+  --card: #1a1a2e;
+  --card-foreground: #f4f4f5;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease forwards;
 }
