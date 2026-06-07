@@ -126,17 +126,13 @@ export default function WatermarkPage() {
     return () => { cancelled = true; };
   }, [file]);
 
-  // Image preview
-  useEffect(() => {
-    if (!imageFile) { setImagePreviewUrl(null); return; }
-    const url = URL.createObjectURL(imageFile);
-    setImagePreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [imageFile]);
-
   const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) setImageFile(f);
+    if (f) {
+      setImageFile(f);
+      const url = URL.createObjectURL(f);
+      setImagePreviewUrl(url);
+    }
   };
 
   const handleProcess = async () => {
@@ -182,6 +178,10 @@ export default function WatermarkPage() {
     setProgress(0);
     setError(null);
     setImageFile(null);
+    setImagePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
   };
 
   const isReady = file && (mode === "text" ? !!text.trim() : !!imageFile);
@@ -413,7 +413,14 @@ export default function WatermarkPage() {
                         <p className="text-xs text-[var(--muted-foreground)]">{((imageFile?.size ?? 0) / 1024).toFixed(1)} KB</p>
                       </div>
                       <button
-                        onClick={() => { setImageFile(null); if (imageInputRef.current) imageInputRef.current.value = ""; }}
+                        onClick={() => {
+                          setImageFile(null);
+                          setImagePreviewUrl((prev) => {
+                            if (prev) URL.revokeObjectURL(prev);
+                            return null;
+                          });
+                          if (imageInputRef.current) imageInputRef.current.value = "";
+                        }}
                         className="text-xs text-red-500 hover:underline flex-shrink-0"
                       >
                         Remove

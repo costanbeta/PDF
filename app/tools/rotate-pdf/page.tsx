@@ -22,17 +22,21 @@ export default function RotatePDFPage() {
 
   const file = files[0] ?? null;
 
-  useEffect(() => {
-    if (!file) {
-      setThumbnails([]);
-      setRotations({});
-      return;
+  const handleFilesChange = (newFiles: File[]) => {
+    setFiles(newFiles);
+    setThumbnails([]);
+    setRotations({});
+    setResult(null);
+    setError(null);
+    if (newFiles.length > 0) {
+      setLoadingThumbs(true);
     }
+  };
+
+  useEffect(() => {
+    if (!file) return;
 
     let cancelled = false;
-    setLoadingThumbs(true);
-    setThumbnails([]);
-    setError(null);
 
     file.arrayBuffer().then(async (buf) => {
       try {
@@ -93,6 +97,7 @@ export default function RotatePDFPage() {
 
   const handleReset = () => {
     setFiles([]);
+    setThumbnails([]);
     setResult(null);
     setRotations({});
     setProgress(0);
@@ -107,7 +112,7 @@ export default function RotatePDFPage() {
       {!file && (
         <FileUploader
           files={files}
-          onFilesChange={setFiles}
+          onFilesChange={handleFilesChange}
           label="Drag & drop your PDF here"
           sublabel="Upload one PDF to rotate pages"
         />

@@ -141,8 +141,9 @@ export default function HTMLToPDFPage() {
         }
         return objUrl;
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to load website preview.");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to load website preview.";
+      setError(errMsg);
     } finally {
       setLoadingPreview(false);
     }
@@ -151,7 +152,10 @@ export default function HTMLToPDFPage() {
   // Auto-reload preview in URL mode when screen size changes
   useEffect(() => {
     if (mode === "url" && urlInput.trim() && previewUrl) {
-      handleFetchUrl();
+      const timer = setTimeout(() => {
+        handleFetchUrl();
+      }, 0);
+      return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenWidth]);
@@ -314,8 +318,9 @@ export default function HTMLToPDFPage() {
         setResult(saved);
         setProgress(100);
       }
-    } catch (err: any) {
-      setError(err.message || "Conversion failed.");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Conversion failed.";
+      setError(errMsg);
     } finally {
       setProcessing(false);
     }

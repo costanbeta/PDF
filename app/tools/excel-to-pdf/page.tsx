@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, PDFPage } from "pdf-lib";
 import { ToolLayout } from "@/components/tools/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -73,7 +73,7 @@ export default function ExcelToPDFPage() {
       const maxCols = data[0]?.length || 0;
       const colWidth = maxCols > 0 ? usableWidth / maxCols : usableWidth;
 
-      let page: any;
+      let page: PDFPage;
       let y: number;
 
       if (oneLongPage) {

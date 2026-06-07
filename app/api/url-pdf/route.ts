@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     }[margin] || { top: "0px", bottom: "0px", left: "0px", right: "0px" };
 
     const dimensions = PAGE_DIMENSIONS_INCHES[pageSize];
-    let pdfWidth = orientation === "landscape" ? dimensions.height : dimensions.width;
+    const pdfWidth = orientation === "landscape" ? dimensions.height : dimensions.width;
     let pdfHeight = orientation === "landscape" ? dimensions.width : dimensions.height;
 
     if (oneLongPageParam) {
@@ -99,10 +99,11 @@ export async function GET(req: NextRequest) {
         "Content-Disposition": `attachment; filename="webpage.pdf"`,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("URL to PDF conversion error:", error);
+    const errMsg = error instanceof Error ? error.message : "Failed to convert website to PDF";
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to convert website to PDF" }),
+      JSON.stringify({ error: errMsg }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

@@ -53,10 +53,11 @@ export async function GET(req: NextRequest) {
         "Cache-Control": "public, max-age=120",
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("URL preview screenshot error:", error);
+    const errMsg = error instanceof Error ? error.message : "Failed to render preview of target website";
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to render preview of target website" }),
+      JSON.stringify({ error: errMsg }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

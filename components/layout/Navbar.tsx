@@ -137,7 +137,10 @@ export function Navbar() {
   const convertRef = useRef<HTMLDivElement>(null);
   const megaRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Close dropdowns on outside click
   useEffect(() => {

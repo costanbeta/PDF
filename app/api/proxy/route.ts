@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
         "Cache-Control": "public, max-age=86400",
       },
     });
-  } catch (err: any) {
-    return new Response(err.message || "Failed to fetch resource", { status: 500 });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Failed to fetch resource";
+    return new Response(errMsg, { status: 500 });
   }
 }

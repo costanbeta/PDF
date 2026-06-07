@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { ToolLayout } from "@/components/tools/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
@@ -76,9 +76,7 @@ function SignatureModal({
   const stampInputRef = useRef<HTMLInputElement>(null);
   const [stampPreview, setStampPreview] = useState<string | null>(null);
 
-  useEffect(() => {
-    setTab(fieldType);
-  }, [fieldType, open]);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -444,12 +442,12 @@ export default function SignPDFPage() {
     return () => { cancelled = true; };
   }, [file, currentPage]);
 
-  const openModal = (type: SignTab) => {
+  const openModal = useCallback((type: SignTab) => {
     setPendingFieldType(type);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleModalApply = (result: { value?: string; imageData?: string; fontIndex: number; color: string }) => {
+  const handleModalApply = useCallback((result: { value?: string; imageData?: string; fontIndex: number; color: string }) => {
     const id = `field-${Date.now()}-${Math.random()}`;
     const newField: PlacedField = {
       id,
@@ -463,9 +461,9 @@ export default function SignPDFPage() {
       color: result.color,
     };
     setFields((prev) => [...prev, newField]);
-  };
+  }, [pendingFieldType, currentPage]);
 
-  const addSimpleField = (type: FieldType) => {
+  const addSimpleField = useCallback((type: FieldType) => {
     if (type === "signature") { openModal("signature"); return; }
     if (type === "initials") { openModal("initials"); return; }
     if (type === "stamp") { openModal("stamp"); return; }
@@ -485,11 +483,11 @@ export default function SignPDFPage() {
       fontIndex: 0,
       color: "#1a1a1a",
     }]);
-  };
+  }, [fullName, currentPage, openModal]);
 
-  const removeField = (id: string) => setFields((prev) => prev.filter((f) => f.id !== id));
-  const moveField = (id: string, x: number, y: number) =>
-    setFields((prev) => prev.map((f) => f.id === id ? { ...f, x, y } : f));
+  const removeField = useCallback((id: string) => setFields((prev) => prev.filter((f) => f.id !== id)), []);
+  const moveField = useCallback((id: string, x: number, y: number) =>
+    setFields((prev) => prev.map((f) => f.id === id ? { ...f, x, y } : f)), []);
 
   const handleSign = async () => {
     if (!file) return;
@@ -610,6 +608,7 @@ export default function SignPDFPage() {
   return (
     <ToolLayout title="Sign PDF" description="Add your signature to PDF documents." wide>
       <SignatureModal
+        key={modalOpen ? `open-${pendingFieldType}` : "closed"}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onApply={handleModalApply}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, PDFPage } from "pdf-lib";
 import { ToolLayout } from "@/components/tools/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -103,7 +103,7 @@ export default function WordToPDFPage() {
       const usableWidth = targetPageWidth - marginPoints * 2;
       const maxChars = Math.max(20, Math.floor(usableWidth / 5.3));
 
-      let page: any;
+      let page: PDFPage;
       let y: number;
 
       if (oneLongPage) {
