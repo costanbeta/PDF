@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const OPENROUTER_MODEL = "openrouter/free";
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 

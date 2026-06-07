@@ -60,7 +60,7 @@ export default function AISummarizerPage() {
   const [hasSystemKey, setHasSystemKey] = useState(false);
 
   useEffect(() => {
-    fetch("/api/summarize-pdf")
+    fetch("/api/summarize-pdf", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data.hasSystemKey) {
@@ -296,7 +296,7 @@ export default function AISummarizerPage() {
             </button>
           )}
 
-          {!apiKey.trim() && files.length > 0 && !summary && (
+          {hasSystemKey && !apiKey.trim() && files.length > 0 && !summary && (
             <p className="text-xs text-[var(--muted-foreground)] text-center -mt-3">
               Uses configured system API key (env variable) by default
             </p>

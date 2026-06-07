@@ -96,7 +96,7 @@ export default function TranslatePDFPage() {
   const [hasSystemKey, setHasSystemKey] = useState(false);
 
   useEffect(() => {
-    fetch("/api/translate-pdf")
+    fetch("/api/translate-pdf", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data.hasSystemKey) {
@@ -289,7 +289,7 @@ export default function TranslatePDFPage() {
               </button>
             </div>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Your key is never stored — it's sent directly for this session only. Model:{" "}
+              Your key is never stored — it&apos;s sent directly for this session only. Model:{" "}
               <span className="font-mono text-[var(--foreground)]">
                 openrouter/free
               </span>
@@ -376,7 +376,7 @@ export default function TranslatePDFPage() {
             </button>
           )}
 
-          {!apiKey.trim() && files.length > 0 && !translatedText && (
+          {hasSystemKey && !apiKey.trim() && files.length > 0 && !translatedText && (
             <p className="text-xs text-[var(--muted-foreground)] text-center -mt-3">
               Uses configured system API key (env variable) by default
             </p>
