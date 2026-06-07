@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PDFDocument, StandardFonts, rgb, PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { ToolLayout } from "@/components/tools/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -103,7 +103,7 @@ export default function WordToPDFPage() {
       const usableWidth = targetPageWidth - marginPoints * 2;
       const maxChars = Math.max(20, Math.floor(usableWidth / 5.3));
 
-      let page: PDFPage;
+      let page: any;
       let y: number;
 
       if (oneLongPage) {
@@ -311,9 +311,9 @@ export default function WordToPDFPage() {
                           margin === "none" ? "border-[#E8372C]" : "border-[var(--border)]"
                         )}>
                           <svg className={cn("w-full h-full p-1", margin === "none" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                            <rect x="2" y="2" width="20" height="20" rx="2" ry="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                            <polyline points="22 16 16 10 5 21"/>
+                            <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="22 16 16 10 5 21" />
                           </svg>
                         </div>
                       )}
@@ -324,9 +324,9 @@ export default function WordToPDFPage() {
                         )}>
                           <div className="absolute inset-1 border border-dashed border-[var(--muted-foreground)]/50 rounded flex items-center justify-center">
                             <svg className={cn("w-full h-full p-1", margin === "small" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                              <rect x="2" y="2" width="20" height="20" rx="2" ry="2"/>
-                              <circle cx="8.5" cy="8.5" r="1.5"/>
-                              <polyline points="22 16 16 10 5 21"/>
+                              <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="22 16 16 10 5 21" />
                             </svg>
                           </div>
                         </div>
@@ -338,9 +338,9 @@ export default function WordToPDFPage() {
                         )}>
                           <div className="absolute inset-2 border border-dashed border-[var(--muted-foreground)]/50 rounded flex items-center justify-center">
                             <svg className={cn("w-full h-full p-0.5", margin === "big" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                              <rect x="2" y="2" width="20" height="20" rx="2" ry="2"/>
-                              <circle cx="8.5" cy="8.5" r="1.5"/>
-                              <polyline points="22 16 16 10 5 21"/>
+                              <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="22 16 16 10 5 21" />
                             </svg>
                           </div>
                         </div>

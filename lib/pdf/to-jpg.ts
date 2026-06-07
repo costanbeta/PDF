@@ -20,7 +20,7 @@ export async function pdfPageToJpeg(
   canvas.height = viewport.height;
   const ctx = canvas.getContext("2d")!;
 
-  await page.render({ canvasContext: ctx, canvas, viewport }).promise;
+  await page.render({ canvasContext: ctx, viewport }).promise;
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.92);
@@ -47,7 +47,7 @@ export async function renderPageThumbnail(
   canvas.height = scaledViewport.height;
   const ctx = canvas.getContext("2d")!;
 
-  await page.render({ canvasContext: ctx, canvas, viewport: scaledViewport }).promise;
+  await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
 
   return canvas.toDataURL("image/jpeg", 0.7);
 }

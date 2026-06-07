@@ -21,7 +21,7 @@ const PAGE_SIZE_OPTIONS: { id: PageSizeId; label: string }[] = [
 export default function JPGToPDFPage() {
   const [files, setFiles]       = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [result, setResult]     = useState<Uint8Array | null>(null);
+  const [result, setResult]     = useState<Uint8Array | Blob | null>(null);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress]     = useState(0);
   const [error, setError]           = useState<string | null>(null);
@@ -51,7 +51,12 @@ export default function JPGToPDFPage() {
     setPreviews((p) => p.filter((_, idx) => idx !== i));
   };
 
-  const handleDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setOverIndex(i); };
+  const handleDragOver = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    if (overIndex !== i) {
+      setOverIndex(i);
+    }
+  };
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (dragIndex === null || overIndex === null || dragIndex === overIndex) {
@@ -85,7 +90,7 @@ export default function JPGToPDFPage() {
         const blob = await zip.generateAsync({ type: "blob" });
         setProgress(100);
         downloadBlob(blob, "images_to_pdf.zip");
-        setResult(new Uint8Array(0)); // trigger done state
+        setResult(blob); // set the actual zip blob as result
       }
     } catch {
       setError("Failed to convert images. Ensure files are valid JPEG, PNG, or WebP.");
@@ -100,6 +105,11 @@ export default function JPGToPDFPage() {
   };
 
   const hasFiles = files.length > 0;
+
+  const isZip = result instanceof Blob;
+  const downloadFilename = isZip ? "images_to_pdf.zip" : "images_to_pdf.pdf";
+  const downloadLabel = isZip ? "Download ZIP" : "Download PDF";
+  const downloadSize = result ? (result instanceof Blob ? result.size : result.length) : 0;
 
   return (
     <ToolLayout title="JPG to PDF" description="Convert images to a PDF document. Drag to reorder images.">
@@ -222,14 +232,16 @@ export default function JPGToPDFPage() {
 
                 {/* Checkbox: One Long Page */}
                 <div className="pt-1">
-                  <label className="flex items-center gap-3 cursor-pointer py-1 select-none group">
+                  <label
+                    onClick={() => {
+                      setOneLongPage(!oneLongPage);
+                      if (!oneLongPage) {
+                        setMergeAll(true);
+                      }
+                    }}
+                    className="flex items-center gap-3 cursor-pointer py-1 select-none group"
+                  >
                     <div
-                      onClick={() => {
-                        setOneLongPage(!oneLongPage);
-                        if (!oneLongPage) {
-                          setMergeAll(true);
-                        }
-                      }}
                       className={cn(
                         "w-5 h-5 rounded flex items-center justify-center border-2 shrink-0 transition-all",
                         oneLongPage ? "bg-emerald-500 border-emerald-500" : "border-[var(--border)] group-hover:border-emerald-500"
@@ -243,7 +255,7 @@ export default function JPGToPDFPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-[var(--foreground)]">One long page</span>
-                      <div className="relative group/tooltip">
+                      <div className="relative group/tooltip" onClick={(e) => e.stopPropagation()}>
                         <Info className="w-4 h-4 text-[#E8372C] shrink-0" />
                         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/tooltip:block w-48 p-2.5 bg-zinc-900 text-white text-[11px] font-normal rounded-lg shadow-xl z-50 text-center leading-normal">
                           Generates a single continuous PDF page fitting all images stacked vertically.
@@ -364,14 +376,16 @@ export default function JPGToPDFPage() {
 
                 {/* Merge checkbox */}
                 <div className="pt-1">
-                  <label className={cn(
-                    "flex items-center gap-3 py-1 select-none group",
-                    oneLongPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                  )}>
+                  <label
+                    onClick={() => {
+                      if (!oneLongPage) setMergeAll(!mergeAll);
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 py-1 select-none group",
+                      oneLongPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    )}
+                  >
                     <div
-                      onClick={() => {
-                        if (!oneLongPage) setMergeAll(!mergeAll);
-                      }}
                       className={cn(
                         "w-5 h-5 rounded flex items-center justify-center border-2 shrink-0 transition-all",
                         mergeAll || oneLongPage ? "bg-[#E8372C] border-[#E8372C]" : "border-[var(--border)] group-hover:border-[#E8372C]"
@@ -407,10 +421,10 @@ export default function JPGToPDFPage() {
       ) : (
         <DownloadButton
           data={result}
-          filename="images_to_pdf.pdf"
-          fileSize={result.length}
+          filename={downloadFilename}
+          fileSize={downloadSize}
           onReset={handleReset}
-          label="Download PDF"
+          label={downloadLabel}
         />
       )}
 

@@ -198,7 +198,7 @@ export default function AISummarizerPage() {
     setReadingTime(0);
   };
 
-  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const cap = (s?: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
 
   return (
     <ToolLayout
@@ -397,7 +397,7 @@ export default function AISummarizerPage() {
                   </button>
                 </div>
                 <ul className="space-y-2">
-                  {summary.keyPoints.map((pt, i) => (
+                  {summary.keyPoints?.map((pt, i) => (
                     <li key={i} className="flex gap-2 text-sm text-[var(--foreground)]">
                       <span className="text-[#E8372C] font-bold shrink-0">{i + 1}.</span>
                       <span>{pt}</span>
@@ -407,7 +407,7 @@ export default function AISummarizerPage() {
               </div>
 
               {/* Topics */}
-              {summary.topics.length > 0 && (
+              {summary.topics && summary.topics.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Tag className="w-4 h-4 text-[#E8372C]" />

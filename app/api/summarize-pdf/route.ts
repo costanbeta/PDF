@@ -81,10 +81,25 @@ Rules:
 
     let parsed;
     try {
-      parsed = JSON.parse(rawContent);
-    } catch {
+      // Clean up the raw content in case it has markdown code block wrapping or thinking tags
+      let cleanContent = rawContent.trim();
+      
+      // 1. Remove <think>...</think> tags if present (e.g. from DeepSeek R1/reasoning models)
+      cleanContent = cleanContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+      // 2. Remove markdown code blocks if the model wrapped the JSON (e.g. ```json ... ``` or ``` ... ```)
+      if (cleanContent.startsWith("```")) {
+        const lines = cleanContent.split("\n");
+        if (lines.length > 2) {
+          cleanContent = lines.slice(1, -1).join("\n").trim();
+        }
+      }
+
+      parsed = JSON.parse(cleanContent);
+    } catch (parseErr) {
+      console.error("Failed to parse AI response. Raw content was:", rawContent, parseErr);
       return NextResponse.json(
-        { error: "Failed to parse AI response. Please try again." },
+        { error: `Failed to parse AI response: ${rawContent.slice(0, 500)}${rawContent.length > 500 ? "..." : ""}` },
         { status: 500 }
       );
     }
