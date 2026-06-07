@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, Dancing_Script, Pacifico, Sacramento, Pinyon_Script } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/layout/Navbar";
@@ -13,6 +13,29 @@ const inter = Inter({
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
+});
+
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  variable: "--font-dancing",
+});
+
+const pacifico = Pacifico({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-pacifico",
+});
+
+const sacramento = Sacramento({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-sacramento",
+});
+
+const pinyonScript = Pinyon_Script({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-pinyon",
 });
 
 export const metadata: Metadata = {
@@ -35,7 +58,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jakarta.variable} font-sans antialiased min-h-screen flex flex-col`}
+        className={`${inter.variable} ${jakarta.variable} ${dancingScript.variable} ${pacifico.variable} ${sacramento.variable} ${pinyonScript.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Navbar />

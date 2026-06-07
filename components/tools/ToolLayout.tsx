@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ChevronLeft, Shield } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ToolLayoutProps {
   title: string;
   description: string;
   backLabel?: string;
   children: React.ReactNode;
+  wide?: boolean;
 }
 
 export function ToolLayout({
@@ -13,10 +15,14 @@ export function ToolLayout({
   description,
   backLabel = "All Tools",
   children,
+  wide = false,
 }: ToolLayoutProps) {
   return (
     <div className="min-h-screen py-8 sm:py-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={cn(
+        "mx-auto px-4 sm:px-6 lg:px-8",
+        wide ? "max-w-7xl" : "max-w-3xl"
+      )}>
         <div className="mb-8">
           <Link
             href="/"
@@ -42,3 +48,4 @@ export function ToolLayout({
     </div>
   );
 }
+

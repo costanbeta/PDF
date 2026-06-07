@@ -6,6 +6,7 @@ import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { ProgressBar } from "@/components/tools/ProgressBar";
 import { getFileNameWithoutExtension } from "@/lib/utils";
+import JSZip from "jszip";
 
 interface TextItem {
   str: string;
@@ -25,60 +26,77 @@ export default function PDFToExcelPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleProcess = async () => {
-    if (!files[0]) return;
+    if (files.length === 0) return;
     setProcessing(true);
     setProgress(5);
     setError(null);
     setResult(null);
 
     try {
-      const buffer = await files[0].arrayBuffer();
-      setProgress(10);
-
       const pdfjsLib = await import("pdfjs-dist");
       pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      const XLSX = await import("xlsx");
+      const zip = files.length > 1 ? new JSZip() : null;
 
-      const pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
-      const numPages = pdfDoc.numPages;
+      for (let fileIdx = 0; fileIdx < files.length; fileIdx++) {
+        const file = files[fileIdx];
+        const buffer = await file.arrayBuffer();
+        const pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+        const numPages = pdfDoc.numPages;
 
-      const allRows: string[][] = [];
+        const allRows: string[][] = [];
 
-      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-        setProgress(10 + Math.round((pageNum / numPages) * 70));
-        const page = await pdfDoc.getPage(pageNum);
-        const content = await page.getTextContent() as TextContent;
+        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+          const fileProgressStart = 10 + (fileIdx / files.length) * 75;
+          const fileProgressEnd = 10 + ((fileIdx + 1) / files.length) * 75;
+          const pageProgress = fileProgressStart + (pageNum / numPages) * (fileProgressEnd - fileProgressStart);
+          setProgress(Math.round(pageProgress));
 
-        const byY = new Map<number, string[]>();
-        for (const item of content.items) {
-          const y = Math.round(item.transform[5]);
-          if (!byY.has(y)) byY.set(y, []);
-          byY.get(y)!.push(item.str);
+          const page = await pdfDoc.getPage(pageNum);
+          const content = await page.getTextContent() as TextContent;
+
+          const byY = new Map<number, string[]>();
+          for (const item of content.items) {
+            const y = Math.round(item.transform[5]);
+            if (!byY.has(y)) byY.set(y, []);
+            byY.get(y)!.push(item.str);
+          }
+
+          const sortedYs = Array.from(byY.keys()).sort((a, b) => b - a);
+          for (const y of sortedYs) {
+            const cells = byY.get(y)!.join("	").split(/\s{2,}|	/);
+            allRows.push(cells.map((c) => c.trim()).filter((c) => c.length > 0));
+          }
+
+          if (pageNum < numPages) {
+            allRows.push([`--- Page ${pageNum + 1} ---`]);
+          }
         }
 
-        const sortedYs = Array.from(byY.keys()).sort((a, b) => b - a);
-        for (const y of sortedYs) {
-          const cells = byY.get(y)!.join("	").split(/\s{2,}|	/);
-          allRows.push(cells.map((c) => c.trim()).filter((c) => c.length > 0));
-        }
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(allRows);
+        XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+        const out = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 
-        if (pageNum < numPages) {
-          allRows.push([`--- Page ${pageNum + 1} ---`]);
+        const excelBlob = new Blob([out], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        const baseName = getFileNameWithoutExtension(file.name);
+        if (zip) {
+          zip.file(`${baseName}.xlsx`, out);
+        } else {
+          setResult(excelBlob);
+          setOutputName(`${baseName}.xlsx`);
         }
       }
 
-      setProgress(85);
-
-      const XLSX = await import("xlsx");
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(allRows);
-      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-      const out = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
-
-      const blob = new Blob([out], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      setResult(blob);
-      setOutputName(`${getFileNameWithoutExtension(files[0].name)}.xlsx`);
+      if (zip) {
+        setProgress(90);
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        setResult(zipBlob);
+        setOutputName("converted_spreadsheets.zip");
+      }
       setProgress(100);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Extraction failed.");
@@ -104,8 +122,8 @@ export default function PDFToExcelPage() {
           files={files}
           onFilesChange={setFiles}
           accept={{ "application/pdf": [".pdf"] }}
-          multiple={false}
-          label="Drag & drop your PDF here"
+          multiple={true}
+          label="Drag & drop your PDFs here"
           sublabel="or click to browse — best results with text-based PDFs"
         />
 
@@ -115,11 +133,11 @@ export default function PDFToExcelPage() {
             disabled={processing}
             className="w-full py-3.5 bg-[#E8372C] hover:bg-[#c42d22] disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
           >
-            {processing ? "Extracting…" : "Extract to Excel"}
+            {processing ? "Extracting…" : `Extract ${files.length > 1 ? `${files.length} PDFs` : "to Excel"}`}
           </button>
         )}
 
-        {processing && <ProgressBar progress={progress} label="Extracting text and building spreadsheet…" />}
+        {processing && <ProgressBar progress={progress} label="Extracting text and building spreadsheets…" />}
 
         {error && (
           <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4 text-sm text-red-600 dark:text-red-400">
@@ -132,7 +150,7 @@ export default function PDFToExcelPage() {
             data={result}
             filename={outputName}
             onReset={handleReset}
-            label="Download Excel"
+            label={outputName.endsWith(".zip") ? "Download ZIP" : "Download Excel"}
           />
         )}
 

@@ -6,16 +6,16 @@ import { DownloadButton } from "@/components/tools/DownloadButton";
 import { ProgressBar } from "@/components/tools/ProgressBar";
 import { imagesToPDF, imagesToPDFSeparate, type Orientation, type PageSizeId, type MarginSize } from "@/lib/pdf/jpg-to-pdf";
 import { useDropzone } from "react-dropzone";
-import { Upload, GripVertical, X, FileImage, Plus } from "lucide-react";
+import { Upload, GripVertical, X, FileImage, Plus, Info } from "lucide-react";
 import { cn, formatBytes, downloadBlob } from "@/lib/utils";
 import JSZip from "jszip";
 
 const PAGE_SIZE_OPTIONS: { id: PageSizeId; label: string }[] = [
   { id: "fit",    label: "Fit to image" },
-  { id: "a4",     label: "A4 (210×297 mm)" },
-  { id: "a3",     label: "A3 (297×420 mm)" },
-  { id: "letter", label: "Letter (216×279 mm)" },
-  { id: "legal",  label: "Legal (216×356 mm)" },
+  { id: "a4",     label: "A4" },
+  { id: "a3",     label: "A3" },
+  { id: "letter", label: "Letter" },
+  { id: "legal",  label: "Legal" },
 ];
 
 export default function JPGToPDFPage() {
@@ -33,6 +33,7 @@ export default function JPGToPDFPage() {
   const [pageSize, setPageSize]       = useState<PageSizeId>("fit");
   const [margin, setMargin]           = useState<MarginSize>("none");
   const [mergeAll, setMergeAll]       = useState(true);
+  const [oneLongPage, setOneLongPage] = useState(false);
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] },
@@ -68,9 +69,9 @@ export default function JPGToPDFPage() {
   const handleConvert = async () => {
     if (files.length === 0) return;
     setProcessing(true); setProgress(20); setError(null);
-    const opts = { orientation, pageSize, margin };
+    const opts = { orientation, pageSize, margin, oneLongPage };
     try {
-      if (mergeAll || files.length === 1) {
+      if (oneLongPage || mergeAll || files.length === 1) {
         setProgress(60);
         const pdf = await imagesToPDF(files, opts);
         setProgress(100);
@@ -196,95 +197,164 @@ export default function JPGToPDFPage() {
               <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] space-y-5">
                 <h3 className="font-semibold text-[var(--foreground)]">Image to PDF options</h3>
 
+                {/* Page size */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-[var(--foreground)]">Page size</label>
+                  <div className="relative">
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(e.target.value as PageSizeId)}
+                      className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--muted)] pl-4 pr-10 py-3 text-sm text-[var(--foreground)] focus:outline-none focus:border-[#E8372C] transition-colors cursor-pointer"
+                    >
+                      <option value="fit">Fit to image</option>
+                      <option value="a4">A4 ({orientation === "landscape" ? "297x210 mm" : "210x297 mm"})</option>
+                      <option value="a3">A3 ({orientation === "landscape" ? "420x297 mm" : "297x420 mm"})</option>
+                      <option value="letter">Letter ({orientation === "landscape" ? "279x216 mm" : "216x279 mm"})</option>
+                      <option value="legal">Legal ({orientation === "landscape" ? "356x216 mm" : "216x356 mm"})</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted-foreground)]">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Checkbox: One Long Page */}
+                <div className="pt-1">
+                  <label className="flex items-center gap-3 cursor-pointer py-1 select-none group">
+                    <div
+                      onClick={() => {
+                        setOneLongPage(!oneLongPage);
+                        if (!oneLongPage) {
+                          setMergeAll(true);
+                        }
+                      }}
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center border-2 shrink-0 transition-all",
+                        oneLongPage ? "bg-emerald-500 border-emerald-500" : "border-[var(--border)] group-hover:border-emerald-500"
+                      )}
+                    >
+                      {oneLongPage && (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 12 12">
+                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-[var(--foreground)]">One long page</span>
+                      <div className="relative group/tooltip">
+                        <Info className="w-4 h-4 text-[#E8372C] shrink-0" />
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/tooltip:block w-48 p-2.5 bg-zinc-900 text-white text-[11px] font-normal rounded-lg shadow-xl z-50 text-center leading-normal">
+                          Generates a single continuous PDF page fitting all images stacked vertically.
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
                 {/* Orientation */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--foreground)]">Page orientation</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <label className="text-sm font-semibold text-[var(--foreground)]">Orientation</label>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setOrientation("portrait")}
+                      disabled={pageSize === "fit"}
                       className={cn(
-                        "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
-                        orientation === "portrait"
-                          ? "border-[#E8372C] bg-[#E8372C]/5"
-                          : "border-[var(--border)] hover:border-[var(--foreground)]/40"
+                        "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all bg-[var(--card)]",
+                        pageSize === "fit" ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
+                        orientation === "portrait" && pageSize !== "fit"
+                          ? "border-[#E8372C] text-[#E8372C]"
+                          : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]/40"
                       )}
                     >
                       <div className={cn(
                         "w-8 h-10 rounded border-2 flex items-center justify-center",
-                        orientation === "portrait" ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
+                        orientation === "portrait" && pageSize !== "fit" ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
                       )}>
-                        <div className={cn("w-3 h-4 rounded-sm", orientation === "portrait" ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")} />
+                        <div className={cn("w-3 h-4 rounded-sm", orientation === "portrait" && pageSize !== "fit" ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")} />
                       </div>
-                      <span className={cn("text-xs font-semibold", orientation === "portrait" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")}>
-                        Portrait
-                      </span>
+                      <span className="text-xs font-semibold">Portrait</span>
                     </button>
 
                     <button
                       onClick={() => setOrientation("landscape")}
+                      disabled={pageSize === "fit"}
                       className={cn(
-                        "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
-                        orientation === "landscape"
-                          ? "border-[#E8372C] bg-[#E8372C]/5"
-                          : "border-[var(--border)] hover:border-[var(--foreground)]/40"
+                        "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all bg-[var(--card)]",
+                        pageSize === "fit" ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
+                        orientation === "landscape" && pageSize !== "fit"
+                          ? "border-[#E8372C] text-[#E8372C]"
+                          : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]/40"
                       )}
                     >
                       <div className={cn(
                         "w-10 h-8 rounded border-2 flex items-center justify-center",
-                        orientation === "landscape" ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
+                        orientation === "landscape" && pageSize !== "fit" ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
                       )}>
-                        <div className={cn("w-4 h-3 rounded-sm", orientation === "landscape" ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")} />
+                        <div className={cn("w-4 h-3 rounded-sm", orientation === "landscape" && pageSize !== "fit" ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")} />
                       </div>
-                      <span className={cn("text-xs font-semibold", orientation === "landscape" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")}>
-                        Landscape
-                      </span>
+                      <span className="text-xs font-semibold">Landscape</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Page size */}
+                {/* Page margin */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--foreground)]">Page size</label>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(e.target.value as PageSizeId)}
-                    className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:border-[#E8372C] transition-colors"
-                  >
-                    {PAGE_SIZE_OPTIONS.map((o) => (
-                      <option key={o.id} value={o.id}>{o.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Margin */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--foreground)]">Margin</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <label className="text-sm font-semibold text-[var(--foreground)]">Page margin</label>
+                  <div className="grid grid-cols-3 gap-2.5">
                     {(["none", "small", "big"] as MarginSize[]).map((m) => (
                       <button
                         key={m}
                         onClick={() => setMargin(m)}
                         className={cn(
-                          "flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all",
+                          "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer bg-[var(--card)]",
                           margin === m
-                            ? "border-[#E8372C] bg-[#E8372C]/5"
-                            : "border-[var(--border)] hover:border-[var(--foreground)]/40"
+                            ? "border-[#E8372C] text-[#E8372C]"
+                            : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]/40"
                         )}
                       >
-                        {/* Mini page visual */}
-                        <div className={cn(
-                          "w-8 h-8 rounded border flex items-center justify-center",
-                          margin === m ? "border-[#E8372C]" : "border-[var(--muted-foreground)]"
-                        )}>
-                          <div
-                            className={cn("rounded-sm", margin === m ? "bg-[#E8372C]" : "bg-[var(--muted-foreground)]")}
-                            style={{
-                              width: m === "none" ? "100%" : m === "small" ? "80%" : "60%",
-                              height: m === "none" ? "100%" : m === "small" ? "80%" : "60%",
-                            }}
-                          />
-                        </div>
-                        <span className={cn("text-[10px] font-semibold capitalize", margin === m ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")}>
+                        {m === "none" && (
+                          <div className={cn(
+                            "w-10 h-10 rounded border flex items-center justify-center relative overflow-hidden bg-white dark:bg-zinc-900",
+                            margin === "none" ? "border-[#E8372C]" : "border-[var(--border)]"
+                          )}>
+                            <svg className={cn("w-full h-full p-1", margin === "none" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                              <rect x="2" y="2" width="20" height="20" rx="2" ry="2"/>
+                              <circle cx="8.5" cy="8.5" r="1.5"/>
+                              <polyline points="22 16 16 10 5 21"/>
+                            </svg>
+                          </div>
+                        )}
+                        {m === "small" && (
+                          <div className={cn(
+                            "w-10 h-10 rounded border flex items-center justify-center relative bg-white dark:bg-zinc-900",
+                            margin === "small" ? "border-[#E8372C]" : "border-[var(--border)]"
+                          )}>
+                            <div className="absolute inset-1 border border-dashed border-[var(--muted-foreground)]/50 rounded flex items-center justify-center">
+                              <svg className={cn("w-full h-full p-1", margin === "small" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                <rect x="2" y="2" width="20" height="20" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="22 16 16 10 5 21"/>
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                        {m === "big" && (
+                          <div className={cn(
+                            "w-10 h-10 rounded border flex items-center justify-center relative bg-white dark:bg-zinc-900",
+                            margin === "big" ? "border-[#E8372C]" : "border-[var(--border)]"
+                          )}>
+                            <div className="absolute inset-2 border border-dashed border-[var(--muted-foreground)]/50 rounded flex items-center justify-center">
+                              <svg className={cn("w-full h-full p-0.5", margin === "big" ? "text-[#E8372C]" : "text-[var(--muted-foreground)]")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                <rect x="2" y="2" width="20" height="20" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="22 16 16 10 5 21"/>
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                        <span className="text-[11px] font-semibold capitalize">
                           {m === "none" ? "No margin" : m}
                         </span>
                       </button>
@@ -293,22 +363,29 @@ export default function JPGToPDFPage() {
                 </div>
 
                 {/* Merge checkbox */}
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div
-                    onClick={() => setMergeAll(!mergeAll)}
-                    className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center border-2 shrink-0 transition-all",
-                      mergeAll ? "bg-[#E8372C] border-[#E8372C]" : "border-[var(--border)] group-hover:border-[#E8372C]"
-                    )}
-                  >
-                    {mergeAll && (
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-sm text-[var(--foreground)]">Merge all images in one PDF file</span>
-                </label>
+                <div className="pt-1">
+                  <label className={cn(
+                    "flex items-center gap-3 py-1 select-none group",
+                    oneLongPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  )}>
+                    <div
+                      onClick={() => {
+                        if (!oneLongPage) setMergeAll(!mergeAll);
+                      }}
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center border-2 shrink-0 transition-all",
+                        mergeAll || oneLongPage ? "bg-[#E8372C] border-[#E8372C]" : "border-[var(--border)] group-hover:border-[#E8372C]"
+                      )}
+                    >
+                      {(mergeAll || oneLongPage) && (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 12 12">
+                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm font-semibold text-[var(--foreground)]">Merge all images in one PDF file</span>
+                  </label>
+                </div>
               </div>
 
               {processing && <ProgressBar progress={progress} label="Converting to PDF..." />}

@@ -8,6 +8,7 @@ export interface ImageToPDFOptions {
   orientation: Orientation;
   pageSize: PageSizeId;
   margin: MarginSize;
+  oneLongPage?: boolean;
 }
 
 const PAGE_SIZES: Record<Exclude<PageSizeId, "fit">, [number, number]> = {
@@ -34,10 +35,59 @@ async function embedImage(pdf: PDFDocument, file: File) {
 
 export async function imagesToPDF(
   files: File[],
-  options: ImageToPDFOptions = { orientation: "portrait", pageSize: "fit", margin: "none" }
+  options: ImageToPDFOptions = { orientation: "portrait", pageSize: "fit", margin: "none", oneLongPage: false }
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const margin = MARGINS[options.margin];
+
+  if (options.oneLongPage) {
+    const embeddedImages = [];
+    let pageW: number;
+
+    if (options.pageSize === "fit") {
+      let maxW = 0;
+      for (const file of files) {
+        const img = await embedImage(pdf, file);
+        if (img.width > maxW) maxW = img.width;
+        embeddedImages.push({ img, w: img.width, h: img.height });
+      }
+      pageW = maxW + margin * 2;
+    } else {
+      let [w, h] = PAGE_SIZES[options.pageSize];
+      if (options.orientation === "landscape") [w, h] = [h, w];
+      pageW = w;
+      for (const file of files) {
+        const img = await embedImage(pdf, file);
+        embeddedImages.push({ img, w: img.width, h: img.height });
+      }
+    }
+
+    const drawW = pageW - margin * 2;
+    const imagesWithScaledDimensions = embeddedImages.map((item) => {
+      const scale = drawW / item.w;
+      const scaledW = drawW;
+      const scaledH = item.h * scale;
+      return { ...item, scaledW, scaledH };
+    });
+
+    const sumScaledHeight = imagesWithScaledDimensions.reduce((sum, item) => sum + item.scaledH, 0);
+    const pageH = sumScaledHeight + margin * 2;
+
+    const page = pdf.addPage([pageW, pageH]);
+    let currentY = pageH - margin;
+
+    for (const item of imagesWithScaledDimensions) {
+      currentY -= item.scaledH;
+      page.drawImage(item.img, {
+        x: margin,
+        y: currentY,
+        width: item.scaledW,
+        height: item.scaledH,
+      });
+    }
+
+    return pdf.save();
+  }
 
   for (const file of files) {
     const image = await embedImage(pdf, file);

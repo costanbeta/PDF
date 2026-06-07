@@ -18,44 +18,60 @@ export default function PDFToJPGPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [pageCount, setPageCount] = useState<number | null>(null);
-
-  const file = files[0] ?? null;
+  const [pageCounts, setPageCounts] = useState<Record<string, number>>({});
 
   const handleFileChange = async (newFiles: File[]) => {
     setFiles(newFiles);
-    setPageCount(null);
-    if (newFiles[0]) {
-      const buf = await newFiles[0].arrayBuffer();
-      const count = await getPDFPageCount(buf);
-      setPageCount(count);
+    const counts = { ...pageCounts };
+    for (const f of newFiles) {
+      if (counts[f.name] === undefined) {
+        try {
+          const buf = await f.arrayBuffer();
+          const count = await getPDFPageCount(buf);
+          counts[f.name] = count;
+        } catch (e) {
+          console.error("Failed to read page count for", f.name, e);
+        }
+      }
     }
+    setPageCounts(counts);
   };
 
+  const totalPages = files.reduce((acc, f) => acc + (pageCounts[f.name] || 0), 0);
+
   const handleConvert = async () => {
-    if (!file) return;
+    if (files.length === 0) return;
     setProcessing(true);
     setProgress(5);
     setError(null);
     try {
-      const buf = await file.arrayBuffer();
-      const count = await getPDFPageCount(buf);
       const zip = new JSZip();
-      const baseName = file.name.replace(/\.pdf$/i, "");
+      let pagesProcessed = 0;
 
-      for (let i = 0; i < count; i++) {
-        const blob = await pdfPageToJpeg(buf, i, dpi);
-        const arrayBuf = await blob.arrayBuffer();
-        zip.file(`${baseName}_page_${i + 1}.jpg`, arrayBuf);
-        setProgress(5 + ((i + 1) / count) * 90);
+      for (const file of files) {
+        const buf = await file.arrayBuffer();
+        const count = pageCounts[file.name] || (await getPDFPageCount(buf));
+        const baseName = file.name.replace(/\.pdf$/i, "");
+        
+        const folderName = files.length > 1 ? `${baseName}_images` : "";
+        const zipTarget = folderName ? zip.folder(folderName) || zip : zip;
+
+        for (let i = 0; i < count; i++) {
+          const blob = await pdfPageToJpeg(buf, i, dpi);
+          const arrayBuf = await blob.arrayBuffer();
+          zipTarget.file(`${baseName}_page_${i + 1}.jpg`, arrayBuf);
+          pagesProcessed++;
+          setProgress(5 + (pagesProcessed / totalPages) * 90);
+        }
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      downloadBlob(zipBlob, `${baseName}_images.zip`);
+      const outputZipName = files.length > 1 ? "converted_images.zip" : `${files[0].name.replace(/\.pdf$/i, "")}_images.zip`;
+      downloadBlob(zipBlob, outputZipName);
       setProgress(100);
       setDone(true);
     } catch {
-      setError("Failed to convert PDF to images. Please ensure the file is a valid PDF.");
+      setError("Failed to convert PDF to images. Please ensure the files are valid PDFs.");
     } finally {
       setProcessing(false);
     }
@@ -66,7 +82,7 @@ export default function PDFToJPGPage() {
     setDone(false);
     setProgress(0);
     setError(null);
-    setPageCount(null);
+    setPageCounts({});
   };
 
   return (
@@ -77,20 +93,19 @@ export default function PDFToJPGPage() {
       <FileUploader
         files={files}
         onFilesChange={handleFileChange}
-        label="Drag & drop your PDF here"
+        multiple={true}
+        label="Drag & drop your PDFs here"
         sublabel="Each page will be converted to a JPEG image"
       />
 
-      {file && !done && (
+      {files.length > 0 && !done && (
         <>
           <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--card)] space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-[var(--foreground)]">Settings</h3>
-              {pageCount !== null && (
-                <span className="text-sm text-[var(--muted-foreground)]">
-                  {pageCount} pages detected
-                </span>
-              )}
+              <span className="text-sm text-[var(--muted-foreground)]">
+                {files.length} {files.length === 1 ? "file" : "files"} ({totalPages} pages total) detected
+              </span>
             </div>
 
             <div className="space-y-2">
@@ -130,7 +145,7 @@ export default function PDFToJPGPage() {
             className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#E8372C] hover:bg-[#c42d22] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all"
           >
             <Image className="w-5 h-5" />
-            {processing ? "Converting..." : "Convert to JPG"}
+            {processing ? "Converting..." : `Convert ${files.length > 1 ? `${files.length} PDFs` : "to JPG"}`}
           </button>
         </>
       )}
@@ -147,7 +162,7 @@ export default function PDFToJPGPage() {
             onClick={handleReset}
             className="text-sm font-medium text-green-700 dark:text-green-300 underline"
           >
-            Convert another PDF
+            Convert more PDFs
           </button>
         </div>
       )}
