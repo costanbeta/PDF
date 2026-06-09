@@ -115,6 +115,7 @@ export default function PDFToWordPage() {
 
   return (
     <ToolLayout
+      toolId="pdf-to-word"
       title="PDF to Word"
       description="Extract text from your PDF and export it as a .docx Word document."
     >

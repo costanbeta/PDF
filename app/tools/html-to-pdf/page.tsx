@@ -340,6 +340,7 @@ export default function HTMLToPDFPage() {
 
   return (
     <ToolLayout
+      toolId="html-to-pdf"
       title="HTML to PDF"
       description="Convert any web page or HTML code snippet to high-fidelity PDF documents."
       wide={true}

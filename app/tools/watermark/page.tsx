@@ -188,6 +188,7 @@ export default function WatermarkPage() {
 
   return (
     <ToolLayout
+      toolId="watermark"
       title="Add Watermark"
       description="Stamp a text or image watermark on every page of your PDF."
       wide

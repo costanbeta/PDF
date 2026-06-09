@@ -175,7 +175,8 @@ export default function PowerPointToPDFPage() {
   const hasFile = files.length > 0;
 
   return (
-    <ToolLayout title="PowerPoint to PDF" description="Convert PowerPoint presentations to PDF format.">
+    <ToolLayout
+      toolId="powerpoint-to-pdf" title="PowerPoint to PDF" description="Convert PowerPoint presentations to PDF format.">
       <div className={cn("gap-6", hasFile ? "grid grid-cols-1 lg:grid-cols-[1fr_320px]" : "")}>
         {/* Left column */}
         <div className="space-y-4">

@@ -70,7 +70,7 @@ async function generateQrDataUrl(
 export default function QRCodePage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("generate");
 
-  const [qrData, setQrData] = useState("https://pdfcraft.app");
+  const [qrData, setQrData] = useState("https://pdfcraft.vijaychouhan.in");
   const [format, setFormat] = useState<Format>("png");
   const [size, setSize] = useState(300);
   const [fgColor, setFgColor] = useState("#000000");
@@ -188,6 +188,7 @@ export default function QRCodePage() {
 
   return (
     <ToolLayout
+      toolId="qr-code"
       title="QR Code Generator"
       description="Generate high-quality QR codes in PNG or SVG format, then optionally embed them into any PDF."
     >

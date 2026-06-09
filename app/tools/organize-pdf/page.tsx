@@ -158,6 +158,7 @@ export default function OrganizePDFPage() {
 
   return (
     <ToolLayout
+      toolId="organize-pdf"
       title="Organize PDF"
       description="Reorder or delete pages with drag-and-drop. Combine multiple PDFs into one."
     >

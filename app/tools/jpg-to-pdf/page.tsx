@@ -112,7 +112,8 @@ export default function JPGToPDFPage() {
   const downloadSize = result ? (result instanceof Blob ? result.size : result.length) : 0;
 
   return (
-    <ToolLayout title="JPG to PDF" description="Convert images to a PDF document. Drag to reorder images.">
+    <ToolLayout
+      toolId="jpg-to-pdf" title="JPG to PDF" description="Convert images to a PDF document. Drag to reorder images.">
       {!result ? (
         <div className={cn("gap-6", hasFiles ? "grid grid-cols-1 lg:grid-cols-[1fr_300px]" : "")}>
           {/* Left: dropzone + image grid */}

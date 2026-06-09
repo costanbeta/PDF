@@ -56,6 +56,7 @@ export default function CompressPDFPage() {
 
   return (
     <ToolLayout
+      toolId="compress-pdf"
       title="Compress PDF"
       description="Reduce PDF file size while preserving quality. Choose your compression level."
     >

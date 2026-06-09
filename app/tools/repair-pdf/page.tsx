@@ -89,6 +89,7 @@ export default function RepairPDFPage() {
 
   return (
     <ToolLayout
+      toolId="repair-pdf"
       title="Repair PDF"
       description="Fix corrupted or damaged PDF files."
     >

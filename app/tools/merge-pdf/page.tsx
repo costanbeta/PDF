@@ -58,6 +58,7 @@ export default function MergePDFPage() {
 
   return (
     <ToolLayout
+      toolId="merge-pdf"
       title="Merge PDF"
       description="Combine multiple PDF files into a single document. Drag to reorder."
     >

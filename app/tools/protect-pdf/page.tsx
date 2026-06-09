@@ -52,6 +52,7 @@ export default function ProtectPDFPage() {
 
   return (
     <ToolLayout
+      toolId="protect-pdf"
       title="Protect PDF"
       description="Add password protection to your PDF document to prevent unauthorized access."
     >

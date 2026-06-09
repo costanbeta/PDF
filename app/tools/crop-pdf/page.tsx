@@ -281,7 +281,8 @@ export default function CropPDFPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   if (result) {
     return (
-      <ToolLayout title="Crop PDF" description="Remove margins and crop PDF pages to your specification.">
+      <ToolLayout
+      toolId="crop-pdf" title="Crop PDF" description="Remove margins and crop PDF pages to your specification.">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 space-y-6">
           <DownloadButton
             data={result}

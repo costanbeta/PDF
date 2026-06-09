@@ -168,6 +168,7 @@ export default function PageNumbersPage() {
 
   return (
     <ToolLayout
+      toolId="page-numbers"
       title="Add Page Numbers"
       description="Add page numbers to your PDF in any position with custom styling."
       wide

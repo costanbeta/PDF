@@ -4,6 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import Script from "next/script";
+
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,14 +41,50 @@ const pinyonScript = Pinyon_Script({
 });
 
 export const metadata: Metadata = {
-  title: "PDFCraft — Free Online PDF Tools",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pdfcraft.vijaychouhan.in"),
+  title: {
+    default: "PDFCraft — Free Online PDF Tools (100% Secure & Client-Side)",
+    template: "%s | PDFCraft",
+  },
   description:
-    "Merge, split, compress, convert and edit PDFs for free. 100% secure — files never leave your device.",
-  keywords: ["PDF tools", "merge PDF", "split PDF", "compress PDF", "PDF to JPG"],
+    "Merge, split, compress, convert, sign and edit PDFs for free. 100% secure — all processing happens locally inside your browser, so files never leave your device.",
+  keywords: [
+    "PDF tools",
+    "free online pdf tools",
+    "merge PDF",
+    "split PDF",
+    "compress PDF",
+    "PDF to JPG",
+    "convert pdf",
+    "browser based pdf editor",
+    "secure pdf converter"
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
-    title: "PDFCraft — Free Online PDF Tools",
-    description: "All-in-one browser-based PDF utility suite. No uploads required.",
+    title: "PDFCraft — Free Online PDF Tools (100% Secure)",
+    description: "Merge, split, compress, convert and edit PDFs for free. All-in-one browser-based PDF utility suite. No uploads required.",
+    url: "https://pdfcraft.vijaychouhan.in",
+    siteName: "PDFCraft",
     type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PDFCraft — Free Online PDF Tools",
+    description: "Merge, split, compress, convert and edit PDFs for free. 100% secure client-side processing.",
   },
 };
 
@@ -65,6 +103,12 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
         </ThemeProvider>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9725451064133102"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

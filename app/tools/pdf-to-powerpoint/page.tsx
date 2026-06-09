@@ -97,6 +97,7 @@ export default function PDFToPowerPointPage() {
 
   return (
     <ToolLayout
+      toolId="pdf-to-powerpoint"
       title="PDF to PowerPoint"
       description="Convert PDF pages into a PowerPoint presentation."
     >

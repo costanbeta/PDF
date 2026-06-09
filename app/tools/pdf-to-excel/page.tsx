@@ -114,6 +114,7 @@ export default function PDFToExcelPage() {
 
   return (
     <ToolLayout
+      toolId="pdf-to-excel"
       title="PDF to Excel"
       description="Extract table data from PDFs into an Excel spreadsheet."
     >

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${resolvedApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://pdfcraft.app",
+        "HTTP-Referer": "https://pdfcraft.vijaychouhan.in",
         "X-Title": "PDFCraft Translate",
       },
       body: JSON.stringify({

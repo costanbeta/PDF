@@ -108,6 +108,7 @@ export default function RemovePagesPage() {
 
   return (
     <ToolLayout
+      toolId="remove-pages"
       title="Remove Pages"
       description="Select the pages you want to delete, then save the cleaned PDF."
     >

@@ -202,6 +202,7 @@ export default function AISummarizerPage() {
 
   return (
     <ToolLayout
+      toolId="ai-summarizer"
       title="AI Summarizer"
       description="Extract key insights and summarize your PDF documents using AI."
     >

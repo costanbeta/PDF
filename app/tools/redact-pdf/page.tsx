@@ -280,6 +280,7 @@ export default function RedactPDFPage() {
 
   return (
     <ToolLayout
+      toolId="redact-pdf"
       title="Redact PDF"
       description="Permanently remove sensitive content from your PDF — text, patterns, or custom regions."
     >

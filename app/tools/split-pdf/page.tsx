@@ -133,6 +133,7 @@ export default function SplitPDFPage() {
 
   return (
     <ToolLayout
+      toolId="split-pdf"
       title="Split PDF"
       description="Split a PDF into multiple files by page ranges or extract every page individually."
     >

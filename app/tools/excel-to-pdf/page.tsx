@@ -194,7 +194,8 @@ export default function ExcelToPDFPage() {
   const hasFile = files.length > 0;
 
   return (
-    <ToolLayout title="Excel to PDF" description="Convert Excel spreadsheets and CSV files to PDF.">
+    <ToolLayout
+      toolId="excel-to-pdf" title="Excel to PDF" description="Convert Excel spreadsheets and CSV files to PDF.">
       <div className={cn("gap-6", hasFile ? "grid grid-cols-1 lg:grid-cols-[1fr_320px]" : "")}>
         {/* Left column */}
         <div className="space-y-4">

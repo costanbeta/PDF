@@ -69,6 +69,7 @@ export default function OCRPDFPage() {
 
   return (
     <ToolLayout
+      toolId="ocr-pdf"
       title="OCR PDF"
       description="Extract text from scanned PDFs using optical character recognition."
     >

@@ -87,6 +87,7 @@ export default function PDFToJPGPage() {
 
   return (
     <ToolLayout
+      toolId="pdf-to-jpg"
       title="PDF to JPG"
       description="Convert each PDF page to a high-quality JPEG image. Download all images as a ZIP."
     >

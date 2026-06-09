@@ -168,7 +168,8 @@ export default function WordToPDFPage() {
   const hasFile = files.length > 0;
 
   return (
-    <ToolLayout title="Word to PDF" description="Convert Word documents to PDF format.">
+    <ToolLayout
+      toolId="word-to-pdf" title="Word to PDF" description="Convert Word documents to PDF format.">
       <div className={cn("gap-6", hasFile ? "grid grid-cols-1 lg:grid-cols-[1fr_320px]" : "")}>
         {/* Left column */}
         <div className="space-y-4">

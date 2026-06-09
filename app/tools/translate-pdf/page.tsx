@@ -239,6 +239,7 @@ export default function TranslatePDFPage() {
 
   return (
     <ToolLayout
+      toolId="translate-pdf"
       title="Translate PDF"
       description="AI-powered PDF translation using OpenRouter — supports 40+ languages."
     >

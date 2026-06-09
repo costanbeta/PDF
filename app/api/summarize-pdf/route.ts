@@ -52,7 +52,7 @@ Rules:
       headers: {
         Authorization: `Bearer ${resolvedApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://pdfcraft.app",
+        "HTTP-Referer": "https://pdfcraft.vijaychouhan.in",
         "X-Title": "PDFCraft AI Summarizer",
       },
       body: JSON.stringify({

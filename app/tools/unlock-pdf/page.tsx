@@ -45,6 +45,7 @@ export default function UnlockPDFPage() {
 
   return (
     <ToolLayout
+      toolId="unlock-pdf"
       title="Unlock PDF"
       description="Remove password protection from a PDF document to allow unrestricted access."
     >

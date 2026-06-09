@@ -572,7 +572,8 @@ export default function SignPDFPage() {
   // ─── Upload screen ─────────────────────────────────────────────────────────
   if (!file) {
     return (
-      <ToolLayout title="Sign PDF" description="Add your signature to PDF documents.">
+      <ToolLayout
+      toolId="sign-pdf" title="Sign PDF" description="Add your signature to PDF documents.">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
           <FileUploader
             files={files}
