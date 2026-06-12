@@ -120,6 +120,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </Script>
         <Script
           async
+          src="https://www.googletagmanager.com/gtag/js?id=G-DWDMP6D7H6"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-DWDMP6D7H6');`}
+        </Script>
+        <Script
+          async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9725451064133102"
           crossOrigin="anonymous"
           strategy="afterInteractive"
