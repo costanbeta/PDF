@@ -70,7 +70,7 @@ async function generateQrDataUrl(
 export default function QRCodePage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("generate");
 
-  const [qrData, setQrData] = useState("https://pdfcraft.vijaychouhan.in");
+  const [qrData, setQrData] = useState("https://pdfcraft.qzz.io");
   const [format, setFormat] = useState<Format>("png");
   const [size, setSize] = useState(300);
   const [fgColor, setFgColor] = useState("#000000");

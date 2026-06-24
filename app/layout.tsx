@@ -41,7 +41,7 @@ const pinyonScript = Pinyon_Script({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pdfcraft.vijaychouhan.in"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pdfcraft.qzz.io"),
   title: {
     default: "PDFCraft — Free Online PDF Tools (100% Secure & Client-Side)",
     template: "%s | PDFCraft",
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "PDFCraft — Free Online PDF Tools (100% Secure)",
     description: "Merge, split, compress, convert and edit PDFs for free. All-in-one browser-based PDF utility suite. No uploads required.",
-    url: "https://pdfcraft.vijaychouhan.in",
+    url: "https://pdfcraft.qzz.io",
     siteName: "PDFCraft",
     type: "website",
     locale: "en_US",

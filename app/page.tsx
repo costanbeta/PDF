@@ -33,7 +33,7 @@ export default function Home() {
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "name": "PDFCraft",
-              "url": "https://pdfcraft.vijaychouhan.in",
+              "url": "https://pdfcraft.qzz.io",
               "applicationCategory": "BusinessApplication",
               "operatingSystem": "All",
               "description": "Free, fast, and 100% secure client-side PDF utility suite. Merge, split, compress, protect, and convert PDFs directly in your browser.",
