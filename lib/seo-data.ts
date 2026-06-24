@@ -7,7 +7,7 @@ export interface ToolSEOData {
   faqs: { question: string; answer: string }[];
 }
 
-export const BASE_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://pdfcraft.qzz.io";
+export const BASE_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://pdfcraft.vijaychouhan.in";
 
 // Special overrides for key tools to target high-traffic search terms
 const seoOverrides: Record<string, Partial<ToolSEOData>> = {
