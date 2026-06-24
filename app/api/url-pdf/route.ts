@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getBrowser } from "@/lib/chrome";
+import { isSafeUrl } from "@/lib/security";
 
 const PAGE_DIMENSIONS_INCHES = {
   A4: { width: 8.27, height: 11.69 },
@@ -23,6 +24,10 @@ export async function GET(req: NextRequest) {
   let url = urlParam.trim();
   if (!/^https?:\/\//i.test(url)) {
     url = `https://${url}`;
+  }
+
+  if (!isSafeUrl(url)) {
+    return new Response("Forbidden or invalid URL destination", { status: 400 });
   }
 
   const width = parseInt(widthParam || "1280", 10) || 1280;

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getBrowser } from "@/lib/chrome";
+import { isSafeUrl } from "@/lib/security";
 
 export async function GET(req: NextRequest) {
   const urlParam = req.nextUrl.searchParams.get("url");
@@ -12,6 +13,10 @@ export async function GET(req: NextRequest) {
   let url = urlParam.trim();
   if (!/^https?:\/\//i.test(url)) {
     url = `https://${url}`;
+  }
+
+  if (!isSafeUrl(url)) {
+    return new Response("Forbidden or invalid URL destination", { status: 400 });
   }
 
   const width = parseInt(widthParam || "1280", 10) || 1280;
