@@ -1,4 +1,4 @@
-import { PDFDocument } from "pdf-lib";
+import { encryptPDF } from "@pdfsmaller/pdf-encrypt-lite";
 
 export interface ProtectOptions {
   userPassword: string;
@@ -10,12 +10,11 @@ export async function protectPDF(
   options: ProtectOptions
 ): Promise<Uint8Array> {
   const buffer = await file.arrayBuffer();
-  const pdf = await PDFDocument.load(buffer);
+  const bytes = new Uint8Array(buffer);
 
-  // pdf-lib supports basic encryption
-  return pdf.save({
-    // @ts-expect-error - pdf-lib encryption support
-    userPassword: options.userPassword || undefined,
-    ownerPassword: options.ownerPassword || undefined,
-  });
+  return encryptPDF(
+    bytes,
+    options.userPassword,
+    options.ownerPassword || null
+  );
 }

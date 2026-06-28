@@ -1,12 +1,13 @@
-import { PDFDocument } from "pdf-lib";
+import { decryptPDF, isEncrypted } from "@pdfsmaller/pdf-decrypt";
 
-export async function unlockPDF(file: File, _password: string): Promise<Uint8Array> {
+export async function unlockPDF(file: File, password: string): Promise<Uint8Array> {
   const buffer = await file.arrayBuffer();
-  // pdf-lib v1.x loads encrypted PDFs by ignoring encryption
-  // For full decryption, we reload and save without encryption
-  const pdf = await PDFDocument.load(buffer, {
-    ignoreEncryption: true,
-  });
+  const bytes = new Uint8Array(buffer);
 
-  return pdf.save();
+  const encryptionInfo = await isEncrypted(bytes);
+  if (!encryptionInfo.encrypted) {
+    return bytes;
+  }
+
+  return decryptPDF(bytes, password);
 }
